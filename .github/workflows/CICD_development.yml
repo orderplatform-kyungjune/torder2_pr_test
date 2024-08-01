@@ -105,16 +105,12 @@ jobs:
       - name: install pnpm
         run: npm install -g pnpm@8.4.0
 
-      - name: 체크
-        run: |
-          ls -al
-          ls -al package/remake
 
       # build
       - name: build TORDER
         run: |
           echo "building for TORDER"
-          run: pnpm torder:build:dev
+          pnpm torder:build:dev
 
       # dist 폴더 캐시 저장
       - name: save dist cache
