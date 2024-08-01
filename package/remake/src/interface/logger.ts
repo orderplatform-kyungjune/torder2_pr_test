@@ -1,0 +1,17 @@
+export interface requestDpLoggerFrontParamsType {
+  type: string,
+  'order_id': string,
+  'order_key': string,
+  kind: string,
+  owner: string,
+  'banner_id': string,
+  'exposure_duration': number,
+  'img_url': string,
+  'store_ad_code': string,
+  ip: string,
+  'tablet_id': string,
+  'mac_address': string,
+  'store_name': string,
+  'store_code': string,
+  'etc_json': string,
+}

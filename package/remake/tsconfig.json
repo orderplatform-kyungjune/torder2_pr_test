@@ -1,0 +1,130 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "../../package",
+    "paths": {
+      "@apis": [
+        "src/apis"
+      ],
+      "@apis/*": [
+        "src/apis/*"
+      ],
+      "@assets": [
+        "src/assets"
+      ],
+      "@assets/*": [
+        "src/assets/*"
+      ],
+      "@codecs": [
+        "src/codecs"
+      ],
+      "@codecs/*": [
+        "src/codecs/*"
+      ],
+      "@components": [
+        "src/components"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@composables": [
+        "src/composables"
+      ],
+      "@composables/*": [
+        "src/composables/*"
+      ],
+      "@containers": [
+        "src/containers"
+      ],
+      "@containers/*": [
+        "src/containers/*"
+      ],
+      "@interface": [
+        "src/interface"
+      ],
+      "@interface/*": [
+        "src/interface/*"
+      ],
+      "@layouts": [
+        "src/layouts"
+      ],
+      "@layouts/*": [
+        "src/layouts/*"
+      ],
+      "@router": [
+        "src/router"
+      ],
+      "@router/*": [
+        "src/router/*"
+      ],
+      "@store": [
+        "src/store"
+      ],
+      "@store/*": [
+        "src/store/*"
+      ],
+      "@styles": [
+        "src/styles"
+      ],
+      "@styles/*": [
+        "src/styles/*"
+      ],
+      "@utils*": [
+        "src/utils"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ],
+      "@views": [
+        "src/views"
+      ],
+      "@views/*": [
+        "src/views/*"
+      ],
+      "@locales": [
+        "src/locales"
+      ],
+      "@locales/*": [
+        "src/locales/*"
+      ],
+      "@i18n": [
+        "src/i18n"
+      ],
+      "@i18n/*": [
+        "src/i18n/*"
+      ],
+      "@plugins": [
+        "src/plugins"
+      ],
+      "@plugins/*": [
+        "src/plugins/*"
+      ],
+      "@common": [
+        "src/common"
+      ],
+      "@common/*": [
+        "src/common/*"
+      ],
+      "@src": [
+        "src"
+      ],
+      "@src/*": [
+        "src/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/**/*.json",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "src/interface/custom.ts", "src/views/login/StoreLogIn.test.js", "src/views/login/StoreLogIn.test.js",
+  ],
+  "exclude": [
+    "src/**/*.test.js",
+    "src/**/*.test.ts",
+  ]
+}

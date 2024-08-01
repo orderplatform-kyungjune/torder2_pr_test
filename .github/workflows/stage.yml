@@ -1,0 +1,714 @@
+# TODO
+# 테스트 후 삭제예정
+name: CI STAGE
+
+on:
+  pull_request:
+    branches: [stage]
+    types: [closed]
+
+jobs:
+  # torder2 stage망 배포
+  torder2_stage:
+    # 실행 조건
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'torder2') && contains(github.event.pull_request.labels.*.name, 'stage') }}
+    # 작업이 실행될 runner 유형
+    runs-on: ubuntu-latest
+
+    # 작업 단계
+    steps:
+      # step 이름 정의
+      - name: Checkout source code
+        # repository의 코드를 가져오기 위한 checkout action
+        uses: actions/checkout@master
+
+      # node npm 설치를 위한 action
+      - uses: actions/setup-node@v4
+        # action에 node version 전달
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      # node modules 캐싱
+      - name: Cache node modules
+        id: node-cache
+        # 캐싱하기 위한 action
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          # 캐시를 저장할 때 생성되는 키로, 캐싱된 데이터를 찾을 때 사용한다.
+          # key가 동일하면 캐싱된 파일을 사용하고, key가 변경되면 다시 install한다.
+          # pnpm-lock.yaml을 hashing한 값으로 설정된다.
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # key를 찾지 못할 경우 restore-key에 매칭되는 다른 유형의 key를 찾아 사용한다.
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        # key가 같지 않을 때 install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        # shell 명령 실행
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm torder:build:stg
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_STAGING_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_STAGE_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        if: ${{ job.status }} === 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 STAGE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 URL*\nhttps://stage-order2.torder.io/"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI TORDER2 STAGE",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+
+  # singapore_stage망 배포
+  singapore_stage:
+    # 실행 조건
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'singapore') && contains(github.event.pull_request.labels.*.name, 'stage') }}
+    # 작업이 실행될 runner 유형
+    runs-on: ubuntu-latest
+
+    # 작업 단계
+    steps:
+      # step 이름 정의
+      - name: Checkout source code
+        # repository의 코드를 가져오기 위한 checkout action
+        uses: actions/checkout@master
+
+      # node npm 설치를 위한 action
+      - uses: actions/setup-node@v4
+        # action에 node version 전달
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      # node modules 캐싱
+      - name: Cache node modules
+        id: node-cache
+        # 캐싱하기 위한 action
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          # 캐시를 저장할 때 생성되는 키로, 캐싱된 데이터를 찾을 때 사용한다.
+          # key가 동일하면 캐싱된 파일을 사용하고, key가 변경되면 다시 install한다.
+          # pnpm-lock.yaml을 hashing한 값으로 설정된다.
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # key를 찾지 못할 경우 restore-key에 매칭되는 다른 유형의 key를 찾아 사용한다.
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        # key가 같지 않을 때 install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        # shell 명령 실행
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm singapore:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_SINGAPORE_STAGE_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_SINGAPORE }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_SINGAPORE_STAGE_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        if: ${{ job.status }} === 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 SINGAPORE STAGE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 URL*\nhttps://sg-stage.orderhae.com/"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI SINGAPORE STAGE",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+
+  # us_stage망 배포
+  us_stage:
+    # 실행 조건
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'us') && contains(github.event.pull_request.labels.*.name, 'stage') }}
+    # 작업이 실행될 runner 유형
+    runs-on: ubuntu-latest
+
+    # 작업 단계
+    steps:
+      # step 이름 정의
+      - name: Checkout source code
+        # repository의 코드를 가져오기 위한 checkout action
+        uses: actions/checkout@master
+
+      # node npm 설치를 위한 action
+      - uses: actions/setup-node@v4
+        # action에 node version 전달
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      # node modules 캐싱
+      - name: Cache node modules
+        id: node-cache
+        # 캐싱하기 위한 action
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          # 캐시를 저장할 때 생성되는 키로, 캐싱된 데이터를 찾을 때 사용한다.
+          # key가 동일하면 캐싱된 파일을 사용하고, key가 변경되면 다시 install한다.
+          # pnpm-lock.yaml을 hashing한 값으로 설정된다.
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # key를 찾지 못할 경우 restore-key에 매칭되는 다른 유형의 key를 찾아 사용한다.
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        # key가 같지 않을 때 install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        # shell 명령 실행
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm us:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_US_STAGE_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_US }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_US_STAGE_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        if: ${{ job.status }} === 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 US STAGE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 URL*\nhttps://stage-us-order2.torder.io/"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI US STAGE",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+
+  # us_east_stage망 배포
+  us_east_stage:
+    # 실행 조건
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'us-east') && contains(github.event.pull_request.labels.*.name, 'stage') }}
+    # 작업이 실행될 runner 유형
+    runs-on: ubuntu-latest
+
+    # 작업 단계
+    steps:
+      # step 이름 정의
+      - name: Checkout source code
+        # repository의 코드를 가져오기 위한 checkout action
+        uses: actions/checkout@master
+
+      # node npm 설치를 위한 action
+      - uses: actions/setup-node@v4
+        # action에 node version 전달
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      # node modules 캐싱
+      - name: Cache node modules
+        id: node-cache
+        # 캐싱하기 위한 action
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          # 캐시를 저장할 때 생성되는 키로, 캐싱된 데이터를 찾을 때 사용한다.
+          # key가 동일하면 캐싱된 파일을 사용하고, key가 변경되면 다시 install한다.
+          # pnpm-lock.yaml을 hashing한 값으로 설정된다.
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # key를 찾지 못할 경우 restore-key에 매칭되는 다른 유형의 key를 찾아 사용한다.
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        # key가 같지 않을 때 install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        # shell 명령 실행
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm us-east:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_US_EAST_STAGE_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_US_EAST }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_US_EAST_STAGE_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        if: ${{ job.status }} === 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 US-EAST STAGE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 URL*\nhttps://stage-us-east-order2.torder.io/"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI US-EAST STAGE",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+
+  # sydney_stage망 배포
+  sydney_stage:
+    # 실행 조건
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'sydney') && contains(github.event.pull_request.labels.*.name, 'stage') }}
+    # 작업이 실행될 runner 유형
+    runs-on: ubuntu-latest
+
+    # 작업 단계
+    steps:
+      # step 이름 정의
+      - name: Checkout source code
+        # repository의 코드를 가져오기 위한 checkout action
+        uses: actions/checkout@master
+
+      # node npm 설치를 위한 action
+      - uses: actions/setup-node@v4
+        # action에 node version 전달
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      # node modules 캐싱
+      - name: Cache node modules
+        id: node-cache
+        # 캐싱하기 위한 action
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          # 캐시를 저장할 때 생성되는 키로, 캐싱된 데이터를 찾을 때 사용한다.
+          # key가 동일하면 캐싱된 파일을 사용하고, key가 변경되면 다시 install한다.
+          # pnpm-lock.yaml을 hashing한 값으로 설정된다.
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # key를 찾지 못할 경우 restore-key에 매칭되는 다른 유형의 key를 찾아 사용한다.
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        # key가 같지 않을 때 install
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        # shell 명령 실행
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm sydney:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_STAGE_SYDNEY_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_SYDNEY }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_SYDNEY_STAGE_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        if: ${{ job.status }} === 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 SYDNEY STAGE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 URL*\nhttps://stage-sydney-order2.torder.io/"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI SYDNEY STAGE",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required

@@ -1,0 +1,352 @@
+# TODO
+# 테스트 후 삭제예정
+name: CI DEVELOP
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [closed]
+
+jobs:
+  # dev망 배포
+  dev:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      - name: Cache node modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: pnpm install
+
+      - name: Build
+        run: pnpm torder:build:dev
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_DEV_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 DEV UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI DEV",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
+
+  # torder2_QA망 배포
+  torder2_QA:
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'torder2') && contains(github.event.pull_request.labels.*.name, 'QA') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      - name: Cache node modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: pnpm install
+
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: pnpm torder:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_QA_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_QA_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 QA UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI QA",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
+
+  # us-east_QA망 배포
+  us-east_QA:
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'us-east') && contains(github.event.pull_request.labels.*.name, 'QA') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: pnpm install
+        run: npm install -g pnpm@8.4.0
+
+      - name: Cache node modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.OS }}-master-build-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Install Dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: pnpm install
+
+      - name: Build
+        run: pnpm us-east:build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_QA_US_EAST_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_US_EAST }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_QA_US_EAST_DISTRIBUTION_ID }}
+        run: pnpm torder:deploy:action
+
+      - name: Actions-Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ job.status }}' === 'success' ? '#52BF90' : '${{ job.status }}' === 'failure' ? '#FF240D' : '#FFC000',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 티오더2 QA US-EAST UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.pull_request.user.login }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*업데이트 내용*\n${{ github.event.pull_request.title }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "CI QA US-EAST",
+                            "emoji": true
+                          },
+                          "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        },
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "PR 바로가기",
+                            "emoji": true
+                          },
+                          "url": "${{ github.event.pull_request.html_url }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.RACCOON_SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.

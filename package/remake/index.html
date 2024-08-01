@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name=”robots” content=”noindex,nofollow”>
+    <link rel="preconnect" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;500;700;900&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;500;700;900&display=swap">
+    <link rel="preconnect" href="https://spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100;300;400;500;700;900&display=swap">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <title>torder2</title>
+    <script>
+      // 로딩, 에러 화면 아이콘 이미지 미리 불러오기
+      function preloading (imageArray) {
+          let n = imageArray.length;
+          for (let i = 0; i < n; i++) {
+              let img = new Image();
+              img.src = imageArray[i];
+          }
+      }
+
+      preloading([
+        'https://static.torder.co.kr/torder2/icn_loading_error.svg',
+      ])
+
+      // 에러 페이지
+      function handleScriptError() {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.bottom = '0';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.zIndex = '99';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.flexDirection = 'column';
+        overlay.style.backgroundColor = 'rgba(0,0,0,1)';
+
+        const failIcn = document.createElement('img');
+        failIcn.src = 'https://static.torder.co.kr/torder2/icn_loading_error.svg';
+        failIcn.style.marginBottom = '3.125vw';
+        overlay.appendChild(failIcn);
+
+        const failMessage = document.createElement('div');
+        if ('%VITE_TORDER_FLAG%' === 'true') {
+          failMessage.textContent = '정보를 불러오는데 실패했습니다.';
+        } else {
+          failMessage.textContent = "Failed to load information.";
+        }
+        failMessage.style.color = '#ffffff';
+        failMessage.style.fontSize = '3.75vw';
+        failMessage.style.textAlign = 'center';
+        failMessage.style.lineHeight = '4.2188vw';
+        failMessage.style.fontFamily = 'Pretendard';
+        overlay.appendChild(failMessage);
+
+        const statusMessage = document.createElement('div');
+        if ('%VITE_TORDER_FLAG%' === 'true') {
+          statusMessage.textContent = '아래 버튼을 눌러 다시 시도해주세요.';
+        } else {
+          statusMessage.textContent = 'Please click the button below to try again.';
+        }
+        statusMessage.style.color = '#ffffff';
+        statusMessage.style.fontSize = '3.75vw';
+        statusMessage.style.textAlign = 'center';
+        statusMessage.style.lineHeight = '4.2188vw';
+        statusMessage.style.fontFamily = 'Pretendard';
+        overlay.appendChild(statusMessage);
+
+        const refreshButton = document.createElement('button');
+        if ('%VITE_TORDER_FLAG%' === 'true') {
+          refreshButton.textContent = '다시 시도하기';
+        } else {
+          refreshButton.textContent = 'Try again';
+        }
+        refreshButton.onclick = () => {
+          if('%VITE_US_EAST_FLAG%' === 'true') {
+            window.location.href = 'https://us-east-order2.torder.io/'
+            return
+          }
+
+          if('%VITE_US_FLAG%' === 'true') {
+            window.location.href = 'https://us-order2.torder.io/'
+            return
+          }
+
+          if('%VITE_SINGAPORE_FLAG%' === 'true') {
+            window.location.href = 'https://sg-order2.torder.io/'
+            return
+          }
+
+          if('%VITE_SYDNEY_FLAG%' === 'true') {
+            window.location.href = 'https://sydney-order2.torder.io/'
+            return
+          }
+
+          if('%VITE_TORDER_FLAG%' === 'true') {
+            window.location.href = 'https://order2.torder.io/'
+          }
+        }
+        refreshButton.style.marginTop = '3.75vw';
+        refreshButton.style.borderRadius = '1.25vw';
+        refreshButton.style.border = '0.1563vw solid #5B5B5B';
+        refreshButton.style.backgroundColor = '#fff';
+        refreshButton.style.color = '#5B5B5B';
+        refreshButton.style.padding = ' 2.5vw 3.125vw';
+        refreshButton.style.fontSize = '3.75vw';
+        refreshButton.style.fontWeight = '700';
+        refreshButton.style.lineHeight = '4.2188vw';
+        refreshButton.style.fontFamily = 'Pretendard';
+        overlay.appendChild(refreshButton);
+
+        document.body.appendChild(overlay);
+      }
+    </script>
+
+    <style lang="scss">
+      .initial-state {
+        background-color: #000;
+      }
+
+      .initial-guide-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        font-size: 60px;
+        color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .initial-guide-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Pretendard', sans-serif;
+        font-size: 5.4688vw;
+        font-weight: 700;
+        line-height: normal;
+        color: #fff;
+        width: 100%;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body class="initial-state">
+    <div class="initial-guide-container">
+      <span class="initial-guide-text"></span>
+    </div>
+    <div id="modal"></div>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+    <link rel="icon" type="ico" href="./favicon.ico" />
+    <script type="module" src="./src/main.ts" onerror="handleScriptError()"></script>
+    <script>
+      // 프로젝트 환경에 따라 로딩 안내 문구 번역 적용
+      function getLoadingTextLanguage () {
+
+        const loadingText = document.querySelector('.initial-guide-text');
+
+        if (loadingText) {
+          if ('%VITE_TORDER_FLAG%' === 'true') {
+            loadingText.textContent = '잠시만 기다려주세요.'
+          } else {
+            loadingText.textContent = 'please wait for a moment.'
+          }
+        }
+      }
+
+      getLoadingTextLanguage();
+    </script>
+  </body>
+</html>

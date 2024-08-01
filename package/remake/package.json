@@ -1,0 +1,47 @@
+{
+  "name": "torder",
+  "version": "2.12.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tsc": "rm -f tsconfig.tsbuildinfo | vue-tsc --noEmit",
+    "update:html": "node ./script/update-html.mjs",
+    "deploy:action": "node ./script/deploy.action.mjs",
+    "deploy:action:version": "node ./script/live-deploy.action.mjs",
+    "torder:serve": "VITE_TORDER_FLAG=true vite --port 8080 --host --mode development",
+    "torder:serve:prod": "VITE_TORDER_FLAG=true vite --port 8080 --host --mode production",
+    "us-east:serve": "VITE_US_EAST_FLAG=true vite --port 8080 --host --mode production",
+    "us:serve": "VITE_US_FLAG=true vite --port 8080 --host --mode production",
+    "singapore:serve": "VITE_SINGAPORE_FLAG=true vite --port 8080 --host --mode production",
+    "sydney:serve": "VITE_SYDNEY_FLAG=true vite --port 8080 --host --mode production",
+    "torder:build": "pnpm tsc && VITE_TORDER_FLAG=true vite build && pnpm update:html",
+    "torder:build:stg": "pnpm tsc && VITE_TORDER_FLAG=true vite build --mode staging && pnpm update:html",
+    "torder:build:dev": "pnpm tsc && VITE_TORDER_FLAG=true vite build --mode development && pnpm update:html",
+    "us-east:build": "pnpm tsc && VITE_US_EAST_FLAG=true vite build && pnpm update:html",
+    "us:build": "pnpm tsc && VITE_US_FLAG=true vite build && pnpm update:html",
+    "singapore:build": "pnpm tsc && VITE_SINGAPORE_FLAG=true vite build && pnpm update:html",
+    "sydney:build": "pnpm tsc && VITE_SYDNEY_FLAG=true vite build && pnpm update:html",
+    "torder:preview": "pnpm torder:build && vite preview --port 8080 --host",
+    "torder:preview:dev": "pnpm torder:build:dev && vite preview --port 8080 --host",
+    "us-east:preview": "pnpm us-east:build && vite preview --port 8080 --host",
+    "us:preview": "pnpm us:build && vite preview --port 8080 --host",
+    "singapore:preview": "pnpm singapore:build && vite preview --port 8080 --host",
+    "sydney:preview": "pnpm sydney:build && vite preview --port 8080 --host",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/vue-query": "^5.35.2",
+    "@tanstack/vue-query-devtools": "^5.35.2",
+    "@torder/common": "*",
+    "lottie-web-vue": "^2.0.7",
+    "swiper": "^11.0.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue-jsx": "^3.1.0",
+    "dayjs": "^1.11.11",
+    "vite-plugin-mkcert": "^1.17.5",
+    "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^1.4.0"
+  }
+}

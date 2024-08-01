@@ -1,0 +1,230 @@
+/* http://meyerweb.com/eric/tools/css/reset/
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+html,
+body {
+  padding: 0;
+  overflow: hidden;
+  font-family: Noto Sans, sans-serif;
+  word-break: keep-all;
+}
+
+button:focus {
+  outline: none;
+}
+
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  vertical-align: baseline;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  border: 0;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* HTML5 display-role reset for older browsers */
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body {
+  line-height: 1;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+blockquote,
+q {
+  quotes: none;
+}
+
+blockquote::before,
+blockquote::after,
+q::before,
+q::after {
+  content: '';
+  content: none;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+.vue-devtools-panel{
+  backdrop-filter: none !important;
+}
+
+
+:root {
+  --z-index-lower: -1;
+  --z-index-stable: 1;
+  --z-index-upper: 2;
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  --max-width: 390px;
+
+  /* font-size  */
+  --font-size-caption: 11px;
+  --font-size-p: 13px;
+  --font-size-h7: 15px;
+  --font-size-h6: 1.328vw;
+  --font-size-h5: 1.641vw;
+  --font-size-h4: 1.875vw;
+  --font-size-h3: 2.5vw;
+  --font-size-h2: 3.125vw;
+  --font-size-h1: 3.75vw;
+
+  /* line-height */
+  --line-height-base: 160%;
+  --line-height-adjust: 130%;
+
+  /* letter-spacing  */
+  --letter-spacing-base: -1.5%;
+  --letter-spacing-adjust: -2%;
+
+  /* border-radius */
+  --border-radius-s: 4px;
+  --border-radius-m: 8px;
+  --border-radius-l: 16px;
+  --border-radius-xl: 24px;
+  --border-radius-infinite: 9999px;
+
+  /* box-shadow */
+  --shadow-s: 0px 4px 12px 0px rgb(48 54 68 / 5%);
+  --shadow-m: 0px 6px 14px 0px rgb(0 0 0 / 4%);
+  --shadow-l: 0px 8px 30px 0px rgb(0 0 0 / 10%);
+
+  /* spacing */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 10px;
+  --spacing-4: 12px;
+  --spacing-5: 16px;
+  --spacing-6: 20px;
+  --spacing-7: 24px;
+  --spacing-8: 28px;
+  --spacing-9: 32px;
+  --spacing-10: 40px;
+  --spacing-11: 48px;
+  --spacing-12: 56px;
+  --spacing-13: 64px;
+}

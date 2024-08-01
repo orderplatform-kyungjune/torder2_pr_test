@@ -1,0 +1,595 @@
+name: CICD production
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'tag to deploy'
+        required: true
+        default: 'v'
+        type: string
+      label:
+        description: 'label to deploy'
+        required: true
+        default: 'TORDER'
+        type: choice
+        options:
+          - ALL
+          - GLOBAL
+          - TORDER
+          - SINGAPORE
+          - US
+          - US_EAST
+          - SYDNEY
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.check_tag.outputs.sha }}
+    steps:
+      # 입력한 태그 존재 여부 확인 및 commit sha 저장
+      - name: check if tag exists
+        id: check_tag
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.BOT_PAT }}
+          script: |
+            const { data: tag } = await github.request('GET /repos/{owner}/{repo}/git/refs/tags/{tag}', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: '${{ github.event.inputs.tag }}'
+            });
+            
+            if (tag) {
+              core.setOutput('sha', tag.object.sha);
+            }
+
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # 노드 버전 세팅
+      - name: setup node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # node_modules 설치
+      - name: install dependencies
+        run: pnpm install
+
+      # node_modules 캐시 저장
+      - name: save node_modules cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+  #---------------------------------- torder
+  build_torder:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.label == 'TORDER' || github.event.inputs.label == 'ALL' }}
+    outputs:
+      sha: ${{ needs.setup.outputs.sha }}
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # build
+      - name: build TORDER
+        run: |
+          echo "building for TORDER"
+          pnpm torder:build
+
+      # dist 폴더 캐시 저장
+      - name: save dist cache
+        uses: actions/cache/save@v4
+        with:
+          path: package/remake/dist
+          key: torder-dist-${{ runner.os }}-${{ needs.setup.outputs.sha }}-${{ github.workflow }}
+
+  deploy_torder:
+    runs-on: ubuntu-latest
+    needs: build_torder
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # dist 폴더 캐시 복원
+      - name: restore dist cache
+        uses: actions/cache/restore@v4
+        with:
+          path: package/remake/dist
+          key: torder-dist-${{ runner.os }}-${{ needs.build_torder.outputs.sha }}-${{ github.workflow }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # 배포
+      - name: deploy TORDER
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_PROD_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_PROD_DISTRIBUTION_ID }}
+        run: |
+          echo "deploying to TORDER"
+          pnpm torder:deploy:action:version
+  #---------------------------------- singapore
+  build_singapore:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.label == 'SINGAPORE' || github.event.inputs.label == 'ALL' || github.event.inputs.label == 'GLOBAL' }}
+    outputs:
+      sha: ${{ needs.setup.outputs.sha }}
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # build
+      - name: build SINGAPORE
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: |
+          echo "building for SINGAPORE"
+          pnpm singapore:build
+
+      # dist 폴더 캐시 저장
+      - name: save dist cache
+        uses: actions/cache/save@v4
+        with:
+          path: package/remake/dist
+          key: singapore-dist-${{ runner.os }}-${{ needs.setup.outputs.sha }}-${{ github.workflow }}
+
+  deploy_singapore:
+    runs-on: ubuntu-latest
+    needs: build_singapore
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # dist 폴더 캐시 복원
+      - name: restore dist cache
+        uses: actions/cache/restore@v4
+        with:
+          path: package/remake/dist
+          key: singapore-dist-${{ runner.os }}-${{ needs.build_singapore.outputs.sha }}-${{ github.workflow }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # 배포
+      - name: deploy SINGAPORE
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_SINGAPORE_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_SINGAPORE }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_SINGAPORE_DISTRIBUTION_ID }}
+        run: |
+          echo "deploying to SINGAPORE"
+          pnpm torder:deploy:action:version
+
+  #---------------------------------- us
+  build_us:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.label == 'US' || github.event.inputs.label == 'ALL' || github.event.inputs.label == 'GLOBAL' }}
+    outputs:
+      sha: ${{ needs.setup.outputs.sha }}
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # build
+      - name: build US
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: |
+          echo "building for US"
+          pnpm us:build
+
+      # dist 폴더 캐시 저장
+      - name: save dist cache
+        uses: actions/cache/save@v4
+        with:
+          path: package/remake/dist
+          key: us-dist-${{ runner.os }}-${{ needs.setup.outputs.sha }}-${{ github.workflow }}
+
+  deploy_us:
+    runs-on: ubuntu-latest
+    needs: build_us
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # dist 폴더 캐시 복원
+      - name: restore dist cache
+        uses: actions/cache/restore@v4
+        with:
+          path: package/remake/dist
+          key: us-dist-${{ runner.os }}-${{ needs.build_us.outputs.sha }}-${{ github.workflow }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # 배포
+      - name: deploy US
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_US_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_US }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_US_DISTRIBUTION_ID }}
+        run: |
+          echo "deploying to US"
+          pnpm torder:deploy:action
+
+  #---------------------------------- us_east
+  build_us_east:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.label == 'US_EAST' || github.event.inputs.label == 'ALL' || github.event.inputs.label == 'GLOBAL' }}
+    outputs:
+      sha: ${{ needs.setup.outputs.sha }}
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # build
+      - name: build US_EAST
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: |
+          echo "building for US"
+          pnpm us-east:build
+
+      # dist 폴더 캐시 저장
+      - name: save dist cache
+        uses: actions/cache/save@v4
+        with:
+          path: package/remake/dist
+          key: us-east-dist-${{ runner.os }}-${{ needs.setup.outputs.sha }}-${{ github.workflow }}
+
+  deploy_us_east:
+    runs-on: ubuntu-latest
+    needs: build_us_east
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # dist 폴더 캐시 복원
+      - name: restore dist cache
+        uses: actions/cache/restore@v4
+        with:
+          path: package/remake/dist
+          key: us-east-dist-${{ runner.os }}-${{ needs.build_us_east.outputs.sha }}-${{ github.workflow }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # 배포
+      - name: deploy US_EAST
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_US_EAST_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_US_EAST }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_US_EAST_DISTRIBUTION_ID }}
+        run: |
+          echo "deploying to US_EAST"
+          pnpm torder:deploy:action:version
+
+  #---------------------------------- sydney
+  build_sydney:
+    runs-on: ubuntu-latest
+    needs: setup
+    if: ${{ github.event.inputs.label == 'SYDNEY' || github.event.inputs.label == 'ALL' || github.event.inputs.label == 'GLOBAL' }}
+    outputs:
+      sha: ${{ needs.setup.outputs.sha }}
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # build
+      - name: build SYDNEY
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: |
+          echo "building for SYDNEY"
+          pnpm sydney:build
+
+      # dist 폴더 캐시 저장
+      - name: save dist cache
+        uses: actions/cache/save@v4
+        with:
+          path: package/remake/dist
+          key: sydney-dist-${{ runner.os }}-${{ needs.setup.outputs.sha }}-${{ github.workflow }}
+
+  deploy_sydney:
+    runs-on: ubuntu-latest
+    needs: build_sydney
+    steps:
+      # 선택한 태그로 체크아웃
+      - name: check out tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      # node_modules 캐시 복원
+      - name: restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            package/remake/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      # dist 폴더 캐시 복원
+      - name: restore dist cache
+        uses: actions/cache/restore@v4
+        with:
+          path: package/remake/dist
+          key: sydney-dist-${{ runner.os }}-${{ needs.build_sydney.outputs.sha }}-${{ github.workflow }}
+
+      # pnpm 설치
+      - name: install pnpm
+        run: npm install -g pnpm@8.4.0
+
+      # 배포
+      - name: deploy SYDNEY
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_SYDNEY_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION_SYDNEY }}
+          AWS_DISTRIBUTION_ID: ${{ secrets.AWS_SYDNEY_DISTRIBUTION_ID }}
+        run: |
+          echo "deploying to SYDNEY"
+          pnpm torder:deploy:action:version
+
+  # slack 알림
+  slack_notification:
+    runs-on: ubuntu-latest
+    needs: [deploy_torder, deploy_singapore, deploy_us, deploy_us_east, deploy_sydney]
+    if: ${{ always() }}
+    steps:
+      # job 성공 여부 체크
+      - name: check workflow status
+        id: workflow_status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.BOT_PAT }}
+          script: |
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+          
+            let status = 'success';
+            for (const job of jobs.jobs) {
+              if (job.conclusion === 'failure' || job.conclusion === 'cancelled' || job.conclusion === 'neutral') {
+                status = job.conclusion;
+                break;
+              }
+            }
+            
+            core.setOutput('status', status);
+
+      # slack 알림
+      - name: slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": '${{ steps.workflow_status.outputs.status }}' === 'success' ? '#52BF90' : '#FF240D',
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": ":t'order: 마스터 2.0 LIVE UPDATE 알림"
+                      }
+                    },
+                    {
+                      "type": "divider"
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*라벨*\n${{ github.event.inputs.label }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*태그*\n${{ github.event.inputs.tag }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*상태*\n${{ steps.workflow_status.outputs.status }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*담당자*\n${{ github.event.sender.login }}"
+                        }
+                      ]
+                    },
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

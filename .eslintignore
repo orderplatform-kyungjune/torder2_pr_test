@@ -1,0 +1,5 @@
+vite.config.ts
+aliases.config.js
+index.html
+node_modules
+dist
