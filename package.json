@@ -9,6 +9,7 @@
     "torder:preview": "pnpm run --filter torder torder:preview",
     "torder:build": "pnpm run --filter torder torder:build",
     "torder:build:dev": "pnpm run --filter torder torder:build:dev",
+    "torder:build:stg": "pnpm run --filter torder torder:build:stg",
     "us-east:serve": "pnpm run --filter torder us-east:serve",
     "us-east:preview": "pnpm run --filter torder us-east:preview",
     "us-east:build": "pnpm run --filter torder us-east:build",

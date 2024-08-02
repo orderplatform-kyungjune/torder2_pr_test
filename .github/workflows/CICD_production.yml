@@ -545,7 +545,7 @@ jobs:
                       "type": "header",
                       "text": {
                         "type": "plain_text",
-                        "text": ":t'order: 마스터 2.0 LIVE UPDATE 알림"
+                        "text": ":t'order: 티오더 2.0 LIVE 배포"
                       }
                     },
                     {
